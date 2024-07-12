@@ -42,7 +42,9 @@ class Base(DeclarativeBase):
     pass
 
 
-app.config['SQLALCHEMY_DATABASE_URI'] = os.getenv("DB_URL")
+# 如果找到了 "DB_URL" 環境變量，它會返回該變量的值。
+# 如果沒有找到 "DB_URL" 環境變量，它會返回默認值 'sqlite:///blogs.db'。
+app.config['SQLALCHEMY_DATABASE_URI'] = os.getenv("DB_URL", 'sqlite:///blogs.db')
 db = SQLAlchemy(model_class=Base)
 db.init_app(app)
 
