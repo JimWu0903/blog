@@ -196,8 +196,8 @@ def gravatar_url(email, size=100, rating='g', default='retro', force_default=Fal
 app.jinja_env.filters['gravatar'] = gravatar_url
 
 
-# with app.app_context():
-#     db.create_all()
+with app.app_context():
+    db.create_all()
 
 
 @app.route('/')
