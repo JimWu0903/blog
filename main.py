@@ -1,15 +1,13 @@
 from flask import Flask, render_template, redirect, url_for, jsonify, request, flash, abort
 from flask_bootstrap import Bootstrap5
-from flask_sqlalchemy import SQLAlchemy
 from flask_ckeditor import CKEditor
-from flask_login import UserMixin, login_user, LoginManager, login_required, current_user, logout_user
+from flask_login import UserMixin, login_user, LoginManager, current_user, logout_user
 
 # since gravatar api broken, this is alternative ways
 from hashlib import sha256
 from urllib.parse import urlencode
 
-from sqlalchemy.orm import DeclarativeBase, Mapped, mapped_column
-from sqlalchemy import Integer, String, Text, ForeignKey
+
 from sqlalchemy.exc import DataError
 
 from werkzeug.security import generate_password_hash, check_password_hash
@@ -19,6 +17,8 @@ from datetime import datetime
 from forms import PostForm, RegisterForm, LoginForm, CommentForm
 import os
 import logging
+
+from model import User, BlogPost, Comment, db, init_db
 
 '''
 Make sure the required packages are installed: 
@@ -42,18 +42,10 @@ logging.basicConfig(level=logging.DEBUG)
 logger = logging.getLogger(__name__)
 
 
-# 定義了一個基類 Base, 所有的 ORM 模型都將繼承自這個基類
-class Base(DeclarativeBase):
-    pass
-
-
 # 如果找到了 "DB_URL" 環境變量，它會返回該變量的值。
 # 如果沒有找到 "DB_URL" 環境變量，它會返回默認值 'sqlite:///blogs.db'。
 app.config['SQLALCHEMY_DATABASE_URI'] = os.getenv("DB_URL", 'sqlite:///blogs.db')
 
-# 初始化了一個 SQLAlchemy 對象，並將其與 Flask 實例 app 關聯
-db = SQLAlchemy(model_class=Base)
-db.init_app(app)
 
 # Set flask_login
 login_manager = LoginManager()
@@ -83,52 +75,6 @@ def admin_only(f):
     return wrapper
 
 
-class User(db.Model, UserMixin):
-    __tablename__ = "users"
-
-    id: Mapped[int] = mapped_column(Integer, primary_key=True)
-    name: Mapped[str] = mapped_column(String(50), nullable=False)
-    email: Mapped[int] = mapped_column(String(100), unique=True, nullable=False)
-    password: Mapped[str] = mapped_column(String(100), nullable=False)
-    posts: Mapped[list["BlogPost"]] = db.relationship("BlogPost", back_populates="author")
-    comments: Mapped[list["Comment"]] = db.relationship("Comment", back_populates="comment_author")
-
-
-class BlogPost(db.Model):
-    __tablename__ = "blog_posts"
-
-    id: Mapped[int] = mapped_column(Integer, primary_key=True)
-    author_id: Mapped[int] = mapped_column(Integer, db.ForeignKey("users.id"))
-    author = db.relationship("User", back_populates="posts")
-    title: Mapped[str] = mapped_column(String(250), unique=True, nullable=False)
-    subtitle: Mapped[str] = mapped_column(String(250), nullable=False)
-    date: Mapped[str] = mapped_column(String(250), nullable=False)
-    body: Mapped[str] = mapped_column(Text, nullable=False)
-    img_url: Mapped[str] = mapped_column(String(250), nullable=False)
-
-    # ***************Parent Relationship*************#
-    comments = db.relationship("Comment", back_populates="parent_post")
-
-    @property
-    def author_name(self):
-        return self.author.name if self.author else "Unknown"
-
-    # Optional: this will allow each book object to be identified by its title when printed.
-    def __repr__(self):
-        return f'<BlogPost {self.title},{self.date}>'
-
-
-class Comment(db.Model):
-    __tablename__ = "comments"
-
-    id: Mapped[int] = mapped_column(Integer, primary_key=True)
-    author_id: Mapped[int] = mapped_column(Integer, db.ForeignKey("users.id"))
-    comment_author = db.relationship("User", back_populates="comments")
-
-    # ***************Child Relationship*************#
-    post_id: Mapped[str] = mapped_column(Integer, db.ForeignKey("blog_posts.id"))
-    parent_post = db.relationship("BlogPost", back_populates="comments")
-    text: Mapped[str] = mapped_column(Text, nullable=False)
 
 
 def add_user(form):
@@ -207,8 +153,6 @@ def gravatar_url(email, size=100, rating='g', default='retro', force_default=Fal
 # since gravatar api broken, this is alternative ways
 app.jinja_env.filters['gravatar'] = gravatar_url
 
-with app.app_context():
-    db.create_all()
 
 
 @app.route('/')
@@ -353,5 +297,9 @@ def contact():
     return render_template("contact.html")
 
 
+init_db(app)
+
 if __name__ == "__main__":
+    with app.app_context():
+        db.create_all()  # 在 app context 中創建/檢查所有 table
     app.run(debug=True, port=5004)
