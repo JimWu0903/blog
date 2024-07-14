@@ -42,7 +42,7 @@ logging.basicConfig(level=logging.DEBUG)
 logger = logging.getLogger(__name__)
 
 
-# CREATE DATABASE
+# 定義了一個基類 Base, 所有的 ORM 模型都將繼承自這個基類
 class Base(DeclarativeBase):
     pass
 
@@ -50,6 +50,8 @@ class Base(DeclarativeBase):
 # 如果找到了 "DB_URL" 環境變量，它會返回該變量的值。
 # 如果沒有找到 "DB_URL" 環境變量，它會返回默認值 'sqlite:///blogs.db'。
 app.config['SQLALCHEMY_DATABASE_URI'] = os.getenv("DB_URL", 'sqlite:///blogs.db')
+
+# 初始化了一個 SQLAlchemy 對象，並將其與 Flask 實例 app 關聯
 db = SQLAlchemy(model_class=Base)
 db.init_app(app)
 
