@@ -1,7 +1,7 @@
 from flask import Flask, render_template, redirect, url_for, jsonify, request, flash, abort
 from flask_bootstrap import Bootstrap5
 from flask_ckeditor import CKEditor
-from flask_login import UserMixin, login_user, LoginManager, current_user, logout_user
+from flask_login import login_user, LoginManager, current_user, logout_user
 
 # since gravatar api broken, this is alternative ways
 from hashlib import sha256

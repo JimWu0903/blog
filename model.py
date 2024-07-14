@@ -1,19 +1,19 @@
 from flask_sqlalchemy import SQLAlchemy
 from sqlalchemy.ext.declarative import declarative_base
-from sqlalchemy.orm import DeclarativeBase, Mapped, mapped_column
-from sqlalchemy import Integer, String, Text, ForeignKey
+from sqlalchemy.orm import Mapped, mapped_column
+from sqlalchemy import Integer, String, Text
 from flask_login import UserMixin
 
-# 定义基类
+# 定義基類
 Base = declarative_base()
 
-# 实例化 SQLAlchemy 对象
+# 實例化 SQLAlchemy as db
 db = SQLAlchemy(model_class=Base)
 
 
 def init_db(app):
     """
-    初始化数据库，将 Flask 应用实例与 SQLAlchemy 实例绑定
+    初始化database，將 Flask app 與 SQLAlchemy 實例绑定
     """
     db.init_app(app)
 
