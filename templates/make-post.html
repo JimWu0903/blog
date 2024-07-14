@@ -29,6 +29,13 @@
     <div class="container">
         <div class="row">
             <div class="col-lg-8 col-md-10 mx-auto">
+                {% with messages = get_flashed_messages() %}
+                {% if messages %}
+                {% for message in messages %}
+                <p style="color: red;">{{ message }}</p>
+                {% endfor %}
+                {% endif %}
+                {% endwith %}
                 <!-- TODO:-Add CKEditor and render the form here -->
                 <form method="POST"
                       action="{% if is_edit %}{{ url_for('edit_post', post_id=post_id) }}{% else %}{{ url_for('new_post') }}{% endif %}">
@@ -38,6 +45,12 @@
                     <div class="mb-3">
                         {{ field.label(class="form-label") }}
                         {{ field(class="form-control") }}
+                        {% if field.errors %}
+                        {% set error_messages = field.errors %}
+                        {% for error in error_messages %}
+                        <div class="text-danger">{{ error }}</div>
+                        {% endfor %}
+                        {% endif %}
                     </div>
                     {% endif %}
                     {% endfor %}
