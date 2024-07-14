@@ -10,6 +10,7 @@ from urllib.parse import urlencode
 
 from sqlalchemy.orm import DeclarativeBase, Mapped, mapped_column
 from sqlalchemy import Integer, String, Text, ForeignKey
+from sqlalchemy.exc import DataError
 
 from werkzeug.security import generate_password_hash, check_password_hash
 from functools import wraps
@@ -17,6 +18,7 @@ from datetime import datetime
 
 from forms import PostForm, RegisterForm, LoginForm, CommentForm
 import os
+import logging
 
 '''
 Make sure the required packages are installed: 
@@ -35,6 +37,9 @@ app = Flask(__name__)
 app.config['SECRET_KEY'] = os.getenv("FLASK_KEY")
 Bootstrap5(app)
 ckeditor = CKEditor(app)
+
+logging.basicConfig(level=logging.DEBUG)
+logger = logging.getLogger(__name__)
 
 
 # CREATE DATABASE
@@ -162,8 +167,13 @@ def add_post(form):
             img_url=form.img_url.data,
             body=form.body.data
         )
+        print('new_blog_post', new_blog_post)
         db.session.add(new_blog_post)
         db.session.commit()
+    except (DataError, ValueError) as e:
+        db.session.rollback()
+        logger.error(f'Data error: {str(e)}', exc_info=True)
+        return jsonify(error={"Data error": str(e)}), 400
     except Exception as e:
         db.session.rollback()
         return jsonify(error={"failure Something went wrong": str(e)}), 500
@@ -194,7 +204,6 @@ def gravatar_url(email, size=100, rating='g', default='retro', force_default=Fal
 
 # since gravatar api broken, this is alternative ways
 app.jinja_env.filters['gravatar'] = gravatar_url
-
 
 with app.app_context():
     db.create_all()
@@ -289,8 +298,16 @@ def add_comment():
 def new_post():
     form = PostForm()
     if form.validate_on_submit():
-        add_post(form)
-        return redirect(url_for('get_all_posts'))
+        result = add_post(form)
+        if isinstance(result, tuple) and result[1] >= 400:
+            # 錯誤發生，從 add_post 返回的 JSON 響應中提取錯誤信息
+            error_data = result[0].get_json()
+            error_message = error_data.get('error', {}).get('failure Something went wrong', 'Unknown error occurred')
+            flash(error_message, 'error')
+            return render_template("make-post.html", form=form, is_edit=False)
+        else:
+            # 成功添加文章
+            return redirect(url_for('get_all_posts'))
     return render_template("make-post.html", form=form, is_edit=False)
 
 
